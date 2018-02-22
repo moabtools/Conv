@@ -1,4 +1,4 @@
-// version: 2
+// version: 4
 
 function MoabConv() {
 
@@ -13,6 +13,20 @@ function MoabConv() {
         };
     };
 
+    MoabConv.ReachGoals = function() {
+        for (var el in window) {
+            try {
+                if ("string" == typeof el && el.match(/yaCounter\w+/) && "undefined" != typeof window[el] && window[el].reachGoal) {
+                    window[el].reachGoal('MMB_CLICK');
+                }
+            } catch (e) {}
+	    };
+       	if (typeof(ga) !== "undefined" && typeof(ga) === "function") {
+            ga('send', 'event', 'Moab', 'MmbClick');
+        }
+		return;
+	};
+    
     MoabConv.Do = function () {
 
 		document.addEventListener("DOMContentLoaded", function(event){
@@ -28,6 +42,7 @@ function MoabConv() {
 	            	if(answer.use_mobile_button) {
 	            	
 						var head = document.head || document.getElementsByTagName('head')[0],
+							body = document.body || document.getElementsByTagName('body')[0],
 						    style = document.createElement('style');
 
 						style.type = 'text/css';
@@ -39,12 +54,13 @@ function MoabConv() {
 
 						head.appendChild(style);
 		                
-		                var anchor = document.querySelectorAll("[data-mobile-button]")[0];
-	        			if (anchor) {
-	                		anchor.innerHTML = answer.html;
-	                		anchor.setAttribute("href", "tel:" + answer.mobile_button.phone);
-	        			};
-	                
+		                var anchor = document.createElement('a');
+	                	anchor.innerHTML = answer.html;
+	                	anchor.setAttribute("href", "tel:" + answer.mobile_button.phone);
+						anchor.onclick = MoabConv.ReachGoals;
+	        			
+	        			body.appendChild(anchor);
+
 	            	}
 	            	
 	            	if(answer.use_geo) {
@@ -55,8 +71,23 @@ function MoabConv() {
 		            		Replace("[data-phone]", bundle[0].phone_formatted);
 		                	Replace("[data-city]", bundle[0].city);
 	            		} else {
-				            Replace("[data-city]", moab_default_city);
-				            Replace("[data-phone]", moab_default_phone);
+	            			// любой город в регионе
+	            			bundle = answer.bundles.filter(function(el) { return el.country_id == answer.geo_info.country.id && el.region_id == answer.geo_info.region.id && el.any_city });
+	            			
+	            			if(bundle[0]) {
+								Replace("[data-phone]", bundle[0].phone_formatted);
+		                		Replace("[data-city]", bundle[0].region);
+	            			} else {
+	            				// любой регион в стране
+	            				bundle = answer.bundles.filter(function(el) { return el.country_id == answer.geo_info.country.id && el.any_region });
+	            				if(bundle[0]) {
+	            					Replace("[data-phone]", bundle[0].phone_formatted);
+		                			Replace("[data-city]", bundle[0].country);
+	            				} else {
+									Replace("[data-city]", moab_default_city);
+				            		Replace("[data-phone]", moab_default_phone);
+	            				}
+	            			}
 	            		}
 	            	}
 	            	
@@ -80,6 +111,8 @@ function MoabConv() {
 		});
 
     };
+    
+
     
 };
 
